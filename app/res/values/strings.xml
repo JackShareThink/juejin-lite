@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">掘金 Lite</string>
+    <string name="refresh">刷新</string>
+    <string name="back">返回</string>
+    <string name="loading">正在加载…</string>
+</resources>

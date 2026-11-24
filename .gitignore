@@ -1,0 +1,8 @@
+build/
+keystore/
+*.apk
+*.aab
+docs/shots/*.png
+local.properties
+.idea/
+*.iml
