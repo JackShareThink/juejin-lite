@@ -6,3 +6,4 @@ docs/shots/*.png
 local.properties
 .idea/
 *.iml
+*.idsig
