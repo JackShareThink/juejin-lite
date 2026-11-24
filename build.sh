@@ -103,7 +103,19 @@ with zipfile.ZipFile(apk, "a", zipfile.ZIP_DEFLATED) as z:
 PY
 
 echo "== zipalign"
-"$BT/zipalign$EXE" -f -p 4 "$OUT/app.apk" "$OUT/app.aligned.apk"
+# zipalign 不是可选项：未压缩的 resources.arsc 只要没 4 字节对齐，安装时就报
+# INSTALL_PARSE_FAILED_NOT_APK: Failed to load asset path。
+# pad 上的 build-tools 原生二进制是 x86，arm64 跑不了，所以退回纯 Python 对齐。
+if "$BT/zipalign$EXE" -f -p 4 "$OUT/app.apk" "$OUT/app.aligned.apk" >/dev/null 2>&1; then
+  SIGN_IN="$OUT/app.aligned.apk"
+  echo "   zipalign -> app.aligned.apk"
+elif "$PY" "$ROOT/tools/align_apk.py" "$OUT/app.apk" "$OUT/app.aligned.apk" 4 >/dev/null 2>&1; then
+  SIGN_IN="$OUT/app.aligned.apk"
+  echo "   zipalign 用不了，改用 tools/align_apk.py 对齐 -> app.aligned.apk"
+else
+  SIGN_IN="$OUT/app.apk"
+  echo "   !! 对齐失败，APK 很可能装不上"
+fi
 
 echo "== sign"
 KS="$ROOT/keystore/debug.keystore"
@@ -114,7 +126,7 @@ if [ ! -f "$KS" ]; then
     -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 fi
 "$BT/apksigner$BAT" sign --ks "$KS" --ks-pass pass:android --key-pass pass:android \
-  --out "$ROOT/app-$VERSION_NAME.apk" "$OUT/app.aligned.apk"
+  --out "$ROOT/app-$VERSION_NAME.apk" "$SIGN_IN"
 
 echo "== verify"
 "$BT/apksigner$BAT" verify --print-certs "$ROOT/app-$VERSION_NAME.apk" | head -4
