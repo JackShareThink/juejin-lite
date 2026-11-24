@@ -59,7 +59,7 @@ adb shell input keyevent 82 >/dev/null 2>&1
 sleep 1
 adb shell input keyevent 3 >/dev/null 2>&1
 adb uninstall $PKG >/dev/null 2>&1 || true
-( adb install -r "$ROOT"/app-*.apk > "$SHOTS/install.log" 2>&1 & )
+( adb install --no-incremental -r "$ROOT"/app-*.apk > "$SHOTS/install.log" 2>&1 & )
 TX=$(( W * 401 / 1000 )); TY=$(( H * 571 / 1000 ))
 installed=0
 for _ in $(seq 1 14); do
