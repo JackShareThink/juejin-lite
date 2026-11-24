@@ -48,14 +48,28 @@ accept_miui_prompt() {
   adb shell pm list packages | grep -q "$PKG"
 }
 
+# HyperOS 的「USB安装提示」里 拒绝 按钮带 3 秒倒计时，时间一到就自动取消安装
+# （install 报 INSTALL_FAILED_USER_RESTRICTED: Install canceled by user）。
+# uiautomator dump 太慢，抢不过这 3 秒，所以直接按坐标盲点。坐标由 wm size 按比例算：
+# 2032x3048 上的 继续安装 中心是 815,1740 → 0.401W, 0.571H。
+# 屏幕睡着的时候 input tap 全部无效，弹窗会直接倒计时把自己取消掉，先唤醒并解锁。
+adb shell input keyevent 224 >/dev/null 2>&1
+adb shell input swipe $(( W / 2 )) $(( H * 82 / 100 )) $(( W / 2 )) $(( H * 20 / 100 )) 250 >/dev/null 2>&1
+adb shell input keyevent 82 >/dev/null 2>&1
+sleep 1
+adb shell input keyevent 3 >/dev/null 2>&1
 adb uninstall $PKG >/dev/null 2>&1 || true
 ( adb install -r "$ROOT"/app-*.apk > "$SHOTS/install.log" 2>&1 & )
+TX=$(( W * 401 / 1000 )); TY=$(( H * 571 / 1000 ))
 installed=0
-for _ in $(seq 1 12); do
-  sleep 5
-  if adb shell pm list packages | grep -q "^package:$PKG$"; then installed=1; break; fi
-  accept_miui_prompt && { installed=1; break; }
+for _ in $(seq 1 14); do
+  sleep 0.7
+  adb shell input tap $TX $TY >/dev/null 2>&1
+  # adb shell 回包带 \r\n，不删掉 \r 的话 "^package:$PKG$" 永远匹配不上
+  if adb shell pm list packages 2>/dev/null | tr -d '\r' | grep -q "^package:$PKG$"; then installed=1; break; fi
 done
+if [ "$installed" != 1 ]; then accept_miui_prompt && installed=1; fi
+adb shell input keyevent 3 >/dev/null 2>&1
 cat "$SHOTS/install.log" 2>/dev/null | tail -3
 if [ "$installed" = 1 ]; then ok "apk installed"; else bad "apk install"; exit 1; fi
 
