@@ -2,7 +2,8 @@ build/
 keystore/
 *.apk
 *.aab
-docs/shots/*.png
+docs/shots/ui-*.xml
+docs/shots/install.log
 local.properties
 .idea/
 *.iml

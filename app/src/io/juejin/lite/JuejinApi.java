@@ -111,7 +111,49 @@ final class JuejinApi {
         return article.id == null || article.id.isEmpty() ? null : article;
     }
 
+    private static final int ATTEMPTS = 4;
+
+    /**
+     * Mobile networks hand out transient DNS failures and half-open connections, so every request
+     * is retried a few times with a short backoff before the UI is allowed to show an error.
+     */
     private static String post(String url, String payload) throws IOException {
+        IOException last = null;
+        for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
+            try {
+                return postOnce(url, payload);
+            } catch (IOException e) {
+                last = e;
+                if (attempt == ATTEMPTS || !isTransient(e)) {
+                    throw e;
+                }
+                android.util.Log.w(TAG, "request failed (attempt " + attempt + "/" + ATTEMPTS + "): " + e);
+                try {
+                    Thread.sleep(400L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+        throw last != null ? last : new IOException("request failed");
+    }
+
+    private static boolean isTransient(IOException e) {
+        if (e instanceof java.net.UnknownHostException
+                || e instanceof java.net.SocketTimeoutException
+                || e instanceof java.net.ConnectException
+                || e instanceof java.net.SocketException) {
+            return true;
+        }
+        String message = e.getMessage();
+        if (message != null && message.startsWith("HTTP 5")) {
+            return true;
+        }
+        return false;
+    }
+
+    private static String postOnce(String url, String payload) throws IOException {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(url).openConnection();

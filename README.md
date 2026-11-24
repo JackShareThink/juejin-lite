@@ -38,6 +38,27 @@ adb install -r app-1.0.0.apk
 adb shell am start -n io.juejin.lite/.MainActivity
 ```
 
+小米 / HyperOS 上 `adb install` 会弹「USB安装提示」并返回 `INSTALL_FAILED_USER_RESTRICTED`，
+需要点一次「继续安装」（`tools/e2e.sh` 会自动处理）。
+
+## 端到端测试
+
+`tools/e2e.sh` 会真的装包、启动、拉接口、点进文章、返回、上拉翻页，并逐步截图：
+
+```bash
+bash tools/e2e.sh 10.31.95.123:37797      # 指定设备序列号；不传则用唯一在线的设备
+```
+
+11 项断言：设备在线、安装成功、包已注册、Activity 启动、进程存活、推荐流加载
+（`feed loaded size=N`）、无 `FATAL EXCEPTION`、列表渲染出条目、详情页 resumed、
+`detail page finished`、返回可回列表、翻页触发第二次加载。截图落在 `docs/shots/`。
+
+已在 **小米 Pad 6S Pro 12.4（Android 16, 2032×3048）** 和 x86_64 Android 14 模拟器上跑通 11/11。
+
+| 推荐流 | 文章详情 |
+| --- | --- |
+| ![推荐流](docs/shots/e2e-01-feed.png) | ![文章详情](docs/shots/e2e-02-detail.png) |
+
 ## 目录
 
 ```
